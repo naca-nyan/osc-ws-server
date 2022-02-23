@@ -1,0 +1,15 @@
+{
+  "name": "vrcosc-ws",
+  "scripts": {
+    "build": "tsc main.ts",
+    "dev": "ts-node main.ts"
+  },
+  "dependencies": {
+    "ws": "^8.5.0"
+  },
+  "devDependencies": {
+    "@types/ws": "^8.2.3",
+    "ts-node": "^10.5.0",
+    "typescript": "^4.5.5"
+  }
+}

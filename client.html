@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="stylesheet" href="https://unpkg.com/sakura.css/css/sakura.css" />
+    <title>Websocket</title>
+  </head>
+  <body>
+    <label for="parameter">Parameter</label>
+    <input id="parameter" />
+    <label for="value">Value</label>
+    <input id="value" />
+    <button onclick="send()">send</button>
+    <div id="log"></div>
+    <script>
+      const sock = new WebSocket("ws://localhost:5000");
+      sock.addEventListener("message", async (message) => {
+        const data = await JSON.parse(message.data);
+        const p = document.createElement("p");
+        p.innerText = data.message + " by " + data.name;
+        document.querySelector("#log").appendChild(p);
+      });
+      function send() {
+        const message = document.querySelector("#message").value;
+        const name = document.querySelector("#name").value;
+        sock.send(
+          JSON.stringify({
+            name: name,
+            message: message,
+          })
+        );
+      }
+    </script>
+  </body>
+</html>
