@@ -1,4 +1,4 @@
-import { RawData, Server } from "ws";
+import { Server } from "ws";
 
 const config = {
   port: 5000,
