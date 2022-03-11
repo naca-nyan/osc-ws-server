@@ -1,5 +1,6 @@
 {
   "name": "vrcosc-ws",
+  "main": "main.js",
   "scripts": {
     "build": "tsc main.ts",
     "dev": "ts-node main.ts",
