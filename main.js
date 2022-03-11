@@ -34,7 +34,6 @@ server.on("connection", function (ws, request) {
     log({ event: "new connection", user: user });
     ws.onmessage = function (message) {
         var body = message.data;
-        console.log(body);
         log({ event: "message", user: user, body: body });
         server.clients.forEach(function (client) {
             client.send(body);
