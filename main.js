@@ -20,26 +20,35 @@ var log = function (obj) {
     var log = __assign({ timestamp: new Date().toISOString() }, obj);
     console.log(JSON.stringify(log));
 };
-function getUser(url) {
-    var unknown = "unknown user";
+log({ event: "server started" });
+function getParams(url) {
+    var _a, _b;
+    var res = { user: "unknown user", room: "default" };
     if (url === undefined)
-        return unknown;
-    var base = "https://example.com";
-    var u = new URL(url, base);
-    var user = u.searchParams.get("user");
-    return user !== null && user !== void 0 ? user : unknown;
+        return res;
+    var base = "ws://localhost";
+    var params = new URL(url, base).searchParams;
+    res.user = (_a = params.get("user")) !== null && _a !== void 0 ? _a : res.user;
+    res.room = (_b = params.get("room")) !== null && _b !== void 0 ? _b : res.room;
+    return res;
 }
 server.on("connection", function (ws, request) {
-    var user = getUser(request.url);
-    log({ event: "new connection", user: user });
+    var _a = getParams(request.url), user = _a.user, room = _a.room;
+    var event = { event: "connection", user: user, room: room };
+    log(event);
+    server.clients.forEach(function (client) {
+        var body = JSON.stringify(event);
+        client.send(body);
+    });
     ws.onmessage = function (message) {
-        var body = message.data;
-        log({ event: "message", user: user, body: body });
+        var body = JSON.parse(message.data.toString());
+        var event = { event: "message", user: user, room: room, body: body };
+        log(event);
         server.clients.forEach(function (client) {
-            client.send(body);
+            client.send(JSON.stringify(body));
         });
     };
     ws.onclose = function () {
-        log({ event: "closed", user: user });
+        log({ event: "closed", user: user, room: room });
     };
 });

@@ -14,26 +14,35 @@ const log = (obj: object) => {
   console.log(JSON.stringify(log));
 };
 
-function getUser(url?: string): string {
-  const unknown = "unknown user";
-  if (url === undefined) return unknown;
-  const base = "https://example.com";
-  const u = new URL(url, base);
-  const user = u.searchParams.get("user");
-  return user ?? unknown;
+log({ event: "server started" });
+
+function getParams(url?: string) {
+  const res = { user: "unknown user", room: "default" };
+  if (url === undefined) return res;
+  const base = "ws://localhost";
+  const params = new URL(url, base).searchParams;
+  res.user = params.get("user") ?? res.user;
+  res.room = params.get("room") ?? res.room;
+  return res;
 }
 
 server.on("connection", (ws, request) => {
-  const user = getUser(request.url);
-  log({ event: "new connection", user });
+  const { user, room } = getParams(request.url);
+  const event = { event: "connection", user, room };
+  log(event);
+  server.clients.forEach((client) => {
+    const body = JSON.stringify(event);
+    client.send(body);
+  });
   ws.onmessage = (message) => {
-    const body = message.data;
-    log({ event: "message", user, body });
+    const body = JSON.parse(message.data.toString());
+    const event = { event: "message", user, room, body };
+    log(event);
     server.clients.forEach((client) => {
-      client.send(body);
+      client.send(JSON.stringify(body));
     });
   };
   ws.onclose = () => {
-    log({ event: "closed", user });
+    log({ event: "closed", user, room });
   };
 });
