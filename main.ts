@@ -1,4 +1,4 @@
-import { Server } from "ws";
+import { Server, WebSocket as WebSocketBase } from "ws";
 
 const config = {
   port: 5000,
@@ -26,11 +26,24 @@ function getParams(url?: string) {
   return res;
 }
 
-server.on("connection", (ws, request) => {
+let globalId = 0;
+function getId() {
+  return globalId++;
+}
+
+class WebSocket extends WebSocketBase {
+  id?: number;
+}
+
+server.on("connection", (ws: WebSocket, request) => {
   const { user, room } = getParams(request.url);
-  const event = { event: "connection", user, room };
+  const id = getId();
+  ws.id = id;
+  const event = { event: "connection", user, room, id };
+  ws.send(JSON.stringify({ event: "id", id, user, room }));
   log(event);
-  server.clients.forEach((client) => {
+  server.clients.forEach((client: WebSocket) => {
+    if (client.id === id) return;
     const body = JSON.stringify(event);
     client.send(body);
   });
@@ -38,11 +51,19 @@ server.on("connection", (ws, request) => {
     const body = JSON.parse(message.data.toString());
     const event = { event: "message", user, room, body };
     log(event);
-    server.clients.forEach((client) => {
-      client.send(JSON.stringify(body));
+    const to = body.to as number | undefined;
+    server.clients.forEach((client: WebSocket) => {
+      if (client.id === id) return;
+      if (to !== undefined && client.id !== to) return;
+      client.send(JSON.stringify(event));
     });
   };
   ws.onclose = () => {
-    log({ event: "closed", user, room });
+    const event = { event: "closed", user, room, id };
+    server.clients.forEach((client: WebSocket) => {
+      if (client.id === id) return;
+      client.send(JSON.stringify(event));
+    });
+    log(event);
   };
 });
