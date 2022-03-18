@@ -64,6 +64,8 @@ var Room = /** @class */ (function () {
         this._roomInfo = new Map();
     }
     Room.prototype.roomOf = function (id) {
+        if (id === undefined)
+            return "";
         var room = this._roomOf.get(id);
         return room !== null && room !== void 0 ? room : "";
     };
@@ -91,24 +93,28 @@ server.on("connection", function (ws, request) {
     var id = getId();
     ws.id = id;
     space.addUser(room, id, user);
-    var clients = space.roomInfo(room);
-    var event = { event: "room", id: id, user: user, room: room, clients: clients };
+    var roomInfo = space.roomInfo(room);
+    var event = { event: "updateRoom", id: id, roomInfo: roomInfo, user: user, room: room };
     log(event);
     ws.send(JSON.stringify(event));
     server.clients.forEach(function (client) {
         if (client.id === id)
             return;
-        var event = { event: "connection", user: user, room: room, id: id };
+        if (space.roomOf(client.id) !== room)
+            return;
+        var event = { event: "updateRoom", roomInfo: roomInfo };
         var body = JSON.stringify(event);
         client.send(body);
     });
     ws.onmessage = function (message) {
         var body = JSON.parse(message.data.toString());
-        var event = { event: "message", user: user, room: room, body: body };
+        var event = { event: "message", id: id, user: user, room: room, body: body };
         log(event);
         var to = body.to;
         server.clients.forEach(function (client) {
             if (client.id === id)
+                return;
+            if (space.roomOf(client.id) !== room)
                 return;
             if (to !== undefined && client.id !== to)
                 return;
@@ -116,11 +122,14 @@ server.on("connection", function (ws, request) {
         });
     };
     ws.onclose = function () {
-        var event = { event: "closed", user: user, room: room, id: id };
+        space.delUser(id);
+        var roomInfo = space.roomInfo(room);
+        log({ event: "close", id: id });
+        var event = { event: "updateRoom", room: room, roomInfo: roomInfo };
         server.clients.forEach(function (client) {
+            if (space.roomOf(client.id) !== room)
+                return;
             client.send(JSON.stringify(event));
         });
-        log(event);
-        space.delUser(id);
     };
 });

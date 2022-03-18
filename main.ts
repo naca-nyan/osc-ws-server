@@ -43,7 +43,8 @@ interface Client {
 class Room {
   _roomOf = new Map<number, string>();
   _roomInfo = new Map<string, Client[]>();
-  roomOf(id: number) {
+  roomOf(id?: number) {
+    if (id === undefined) return "";
     const room = this._roomOf.get(id);
     return room ?? "";
   }
@@ -72,33 +73,37 @@ server.on("connection", (ws: WebSocket, request) => {
   const id = getId();
   ws.id = id;
   space.addUser(room, id, user);
-  const clients = space.roomInfo(room);
-  const event = { event: "room", id, user, room, clients };
+  const roomInfo = space.roomInfo(room);
+  const event = { event: "updateRoom", id, roomInfo, user, room };
   log(event);
   ws.send(JSON.stringify(event));
   server.clients.forEach((client: WebSocket) => {
     if (client.id === id) return;
-    const event = { event: "connection", user, room, id };
+    if (space.roomOf(client.id) !== room) return;
+    const event = { event: "updateRoom", roomInfo };
     const body = JSON.stringify(event);
     client.send(body);
   });
   ws.onmessage = (message) => {
     const body = JSON.parse(message.data.toString());
-    const event = { event: "message", user, room, body };
+    const event = { event: "message", id, user, room, body };
     log(event);
     const to = body.to as number | undefined;
     server.clients.forEach((client: WebSocket) => {
       if (client.id === id) return;
+      if (space.roomOf(client.id) !== room) return;
       if (to !== undefined && client.id !== to) return;
       client.send(JSON.stringify(event));
     });
   };
   ws.onclose = () => {
-    const event = { event: "closed", user, room, id };
+    space.delUser(id);
+    const roomInfo = space.roomInfo(room);
+    log({ event: "close", id });
+    const event = { event: "updateRoom", room, roomInfo };
     server.clients.forEach((client: WebSocket) => {
+      if (space.roomOf(client.id) !== room) return;
       client.send(JSON.stringify(event));
     });
-    log(event);
-    space.delUser(id);
   };
 });
