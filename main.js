@@ -58,16 +58,47 @@ var WebSocket = /** @class */ (function (_super) {
     }
     return WebSocket;
 }(ws_1.WebSocket));
+var Room = /** @class */ (function () {
+    function Room() {
+        this._roomOf = new Map();
+        this._roomInfo = new Map();
+    }
+    Room.prototype.roomOf = function (id) {
+        var room = this._roomOf.get(id);
+        return room !== null && room !== void 0 ? room : "";
+    };
+    Room.prototype.roomInfo = function (room) {
+        var info = this._roomInfo.get(room);
+        return info !== null && info !== void 0 ? info : [];
+    };
+    Room.prototype.addUser = function (room, id, user) {
+        this._roomOf.set(id, room);
+        var info = this.roomInfo(room);
+        info.push({ id: id, user: user });
+        this._roomInfo.set(room, info);
+    };
+    Room.prototype.delUser = function (id) {
+        var room = this.roomOf(id);
+        var info = this.roomInfo(room);
+        var filtered = info.filter(function (c) { return c.id !== id; });
+        this._roomInfo.set(room, filtered);
+    };
+    return Room;
+}());
+var space = new Room();
 server.on("connection", function (ws, request) {
     var _a = getParams(request.url), user = _a.user, room = _a.room;
     var id = getId();
     ws.id = id;
-    var event = { event: "connection", user: user, room: room, id: id };
-    ws.send(JSON.stringify({ event: "id", id: id, user: user, room: room }));
+    space.addUser(room, id, user);
+    var clients = space.roomInfo(room);
+    var event = { event: "room", id: id, user: user, room: room, clients: clients };
     log(event);
+    ws.send(JSON.stringify(event));
     server.clients.forEach(function (client) {
         if (client.id === id)
             return;
+        var event = { event: "connection", user: user, room: room, id: id };
         var body = JSON.stringify(event);
         client.send(body);
     });
@@ -87,10 +118,9 @@ server.on("connection", function (ws, request) {
     ws.onclose = function () {
         var event = { event: "closed", user: user, room: room, id: id };
         server.clients.forEach(function (client) {
-            if (client.id === id)
-                return;
             client.send(JSON.stringify(event));
         });
         log(event);
+        space.delUser(id);
     };
 });
