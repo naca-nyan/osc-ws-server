@@ -112,8 +112,6 @@ server.on("connection", function (ws, request) {
         log(event);
         var to = body.to;
         server.clients.forEach(function (client) {
-            if (client.id === id)
-                return;
             if (space.roomOf(client.id) !== room)
                 return;
             if (to !== undefined && client.id !== to)

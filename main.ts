@@ -90,7 +90,6 @@ server.on("connection", (ws: WebSocket, request) => {
     log(event);
     const to = body.to as number | undefined;
     server.clients.forEach((client: WebSocket) => {
-      if (client.id === id) return;
       if (space.roomOf(client.id) !== room) return;
       if (to !== undefined && client.id !== to) return;
       client.send(JSON.stringify(event));
