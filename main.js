@@ -28,7 +28,7 @@ var __assign = (this && this.__assign) || function () {
 exports.__esModule = true;
 var ws_1 = require("ws");
 var config = {
-    port: 5000
+    port: Number(process.env.PORT || 5000)
 };
 var server = new ws_1.Server(config);
 var log = function (obj) {
