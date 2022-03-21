@@ -106,3 +106,11 @@ server.on("connection", (ws: WebSocket, request) => {
     });
   };
 });
+
+// send ping for every 30s to prevent Heroku Error H15
+// https://devcenter.heroku.com/ja/articles/error-codes#h15-idle-connection
+setInterval(() => {
+  server.clients.forEach((client) => {
+    client.send(JSON.stringify({ event: "ping" }));
+  });
+}, 30 * 1000);
